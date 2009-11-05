@@ -1,0 +1,3 @@
+Jackdaw is a simple API for creating graphical applications with Clojure.
+
+Except it's not yet because graphics in Java is like drawing blood out of a stone.
