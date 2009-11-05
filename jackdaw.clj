@@ -98,7 +98,7 @@
     (doto (config :active-frame) 
        (.setLayout (GridLayout. 1 1))
        (.setSize width height)
-       (.setVisible true)))
+       (.setResizable false)))
 
 ; Interface
 (defn app [name options & cmds]
