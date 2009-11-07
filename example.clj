@@ -2,9 +2,10 @@
 
 ; this is almost how the API should be,
 ; the drawing functions will need optional parameters
-; for dynamic styles
+; for inline styles
 
 (app "Jackdaw API Example" { :width 800, :height 600 }
+  (stack)
   (fill 200 100 100)
   (rect 10 10 100 100)
   (stroke 255 10 55)
