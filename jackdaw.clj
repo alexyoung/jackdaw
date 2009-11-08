@@ -32,8 +32,8 @@
 
 (defn current-font-style []
   { :color (@config :fill-color),
-    :size  14
-    :font  "Monospaced" })
+    :size  17
+    :font  "Helvetica" })
 
 ; Drawing structs
 (defstruct shape-2d :type :x :y :width :height :style)
@@ -42,6 +42,7 @@
 (defstruct layout :type :x :y :width :height :margin :padding)
 
 (def default-box (struct box 10 10 10 10))
+(def zero-box (struct box 0 0 0 0))
 
 (defn default-flow []
   (ref (struct layout ::Flow 0 0 (@config :width) (@config :height) default-box default-box)))
@@ -100,7 +101,7 @@
                y start_y]
           (. text-layout draw g x y)
           (if (zero? (- (.length (t :body)) position))
-            (dosync (ref-set current-layout (assoc @current-layout :y y)))
+            (dosync (ref-set current-layout (assoc @current-layout :y (+ y ((@current-layout :padding) :bottom)))))
             (recur 
               (.. measure (nextLayout width))
               (.. measure getPosition)
@@ -153,8 +154,7 @@
 
 (defn flow []
   (add-cmd
-    (struct layout ::Flow 0 0 (@config :width) (@config :height)
-                   default-box default-box)))
+    (struct layout ::Flow 0 0 (@config :width) (@config :height) zero-box zero-box)))
 
 (defn padding
   ([x]                     (struct box x x x x))
