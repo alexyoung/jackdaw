@@ -79,19 +79,27 @@
   l)
 
 ; -move this
-(defmulti apply-layout (fn [l key] (:type l)))
+(defmulti apply-layout (fn [l key _] (:type l)))
 
-(defmethod apply-layout ::jackdaw/Stack [l key]
-  (cond
-    (= key :width)   (- (l :width) ((l :padding) :right) ((l :padding) :left))
-    (= key :start_x) (+ ((l :padding) :left) (l :x))
-    (= key :start_y) (+ ((l :padding) :top) (l :y))))
+(defmethod apply-layout ::jackdaw/Stack
+  ([l key]
+    (cond
+      (= key :width)   (- (l :width) ((l :padding) :right) ((l :padding) :left))
+      (= key :start_x) (+ ((l :padding) :left) (l :x))
+      (= key :start_y) (+ ((l :padding) :top) (l :y))))
+  ([l key y]
+    (cond
+      (= key :next_y)  (+ y ((l :padding) :bottom)))))
 
-(defmethod apply-layout ::jackdaw/Flow [l key]
-  (cond
-    (= key :width)   (- (l :width) ((l :padding) :right) ((l :padding) :left))
-    (= key :start_x) (+ ((l :padding) :left) (l :x))
-    (= key :start_y) (+ ((l :padding) :top) (l :y))))
+(defmethod apply-layout ::jackdaw/Flow
+  ([l key]
+    (cond
+      (= key :width)   (- (l :width) ((l :padding) :right) ((l :padding) :left))
+      (= key :start_x) (+ ((l :padding) :left) (l :x))
+      (= key :start_y) (+ ((l :padding) :top) (l :y))))
+  ([l key y]
+    (cond
+      (= key :next_y)  (+ y ((l :padding) :bottom)))))
 ; -end
 
 (defmethod draw ::jackdaw/Para [t g l]
@@ -117,7 +125,7 @@
                y start_y]
           (. text-layout draw g x y)
           (if (zero? (- (.length (t :body)) position))
-            (dosync (ref-set current-layout (assoc @current-layout :y (+ y ((@current-layout :padding) :bottom)))))
+            (dosync (ref-set current-layout (assoc @current-layout :y (apply-layout @current-layout :next_y y))))
             (recur 
               (.. measure (nextLayout width))
               (.. measure getPosition)
