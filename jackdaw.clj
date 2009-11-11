@@ -50,9 +50,10 @@
 (defn default-box
   ([] (struct box 10 10 10 10))
   ([key options]
-    (cond
-      (contains? options :padding) (padding (options :padding)) 
-      (contains? options :margin) (padding (options :margin)) 
+    (or 
+      (cond
+        (contains? options :padding) (padding (options :padding))
+        (contains? options :margin)  (padding (options :margin)))
       (default-box))))
 
 (def zero-box (struct box 0 0 0 0))

@@ -4,7 +4,9 @@
 ; the drawing functions will need optional parameters
 ; for inline styles
 
+; todo - the default padding should be applied to the children
 (app "Jackdaw API Example" { :width 800, :height 600, :padding 10 }
+  (rect  5 5 785 65)
   (para "From:")
   (para "Alex")
   (flow)
