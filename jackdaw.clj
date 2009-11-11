@@ -78,6 +78,22 @@
     (.drawOval (e :x) (e :y) (e :width) (e :height)))
   l)
 
+; -move this
+(defmulti apply-layout (fn [l key] (:type l)))
+
+(defmethod apply-layout ::jackdaw/Stack [l key]
+  (cond
+    (= key :width)   (- (l :width) ((l :padding) :right) ((l :padding) :left))
+    (= key :start_x) (+ ((l :padding) :left) (l :x))
+    (= key :start_y) (+ ((l :padding) :top) (l :y))))
+
+(defmethod apply-layout ::jackdaw/Flow [l key]
+  (cond
+    (= key :width)   (- (l :width) ((l :padding) :right) ((l :padding) :left))
+    (= key :start_x) (+ ((l :padding) :left) (l :x))
+    (= key :start_y) (+ ((l :padding) :top) (l :y))))
+; -end
+
 (defmethod draw ::jackdaw/Para [t g l]
   (let [current-layout (ref l)]
     (doto g
@@ -89,9 +105,9 @@
                        (Font. ((t :style) :font) (. Font PLAIN) ((t :style) :size)))
         (.addAttribute (.. TextAttribute SIZE) ((t :style) :size))
         (.addAttribute (.. TextAttribute FOREGROUND) ((t :style) :color)))
-      (let [width (- (@current-layout :width) ((@current-layout :padding) :right) ((@current-layout :padding) :left))
-            x (+ ((@current-layout :padding) :left) (@current-layout :x))
-            start_y (+ ((@current-layout :padding) :top) (@current-layout :y))
+      (let [width   (apply-layout @current-layout :width)
+            x       (apply-layout @current-layout :start_x)
+            start_y (apply-layout @current-layout :start_y)
             ; LineBreakMeasurer does the real work
             measure (LineBreakMeasurer.
                     (.. body getIterator)
@@ -112,7 +128,7 @@
   (let [current-layout (default-flow)
         r (doto (proxy [JPanel] [] (paint [g]
     (doall (for [cmd (@config :commands)]
-      (if (= ::jackdaw/Stack (cmd :type))
+      (if (some #{(cmd :type)} [::jackdaw/Stack ::jackdaw/Flow])
         (dosync (ref-set current-layout (add-layouts @current-layout cmd)))
         (dosync (ref-set current-layout (draw cmd g @current-layout)))))))))]
     (doto (@config :active-frame)

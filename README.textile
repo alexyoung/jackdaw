@@ -1,3 +1,13 @@
 Jackdaw is a simple API for creating graphical applications with Clojure.
 
 Except it's not yet because graphics in Java is like drawing blood out of a stone.
+
+
+Todo:
+
+* Define box model (based on HTML like Shoes)
+* Figure out basic algorithm for positioning and drawing, and so it can be reused by various block-level elements
+* Flows should position sets of items horizontally
+* Stacks should position them vertically
+
+At the moment, only stacks with padding work.  Block-level items like text and buttons should be positioned based on size then padding and margin

@@ -6,6 +6,10 @@
 
 (app "Jackdaw API Example" { :width 800, :height 600 }
   (fill 0 0 0 )
+  (rect 10 250 100 100)
+  (flow)
+  (para "hello")
+  (para "my name is alex")
   (stack)
   (para "hello")
   (stack (padding 10 100 10 10))
