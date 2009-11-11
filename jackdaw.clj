@@ -55,7 +55,7 @@
 (defn add-layouts [old new]
   (struct layout (:type new)
                  (:x new)
-                 (+ (:y old) (:y new) (:bottom (:margin old)) (:top (:margin new)))
+                 (+ (:y old) (:y new) (:bottom (:margin old)) (:top (:margin new)) (:top (:padding new)) (:bottom (:padding old)))
                  (:width new) (:height new) (:margin new) (:padding new)))
 
 (defn add-height-to-layout [l height]
@@ -90,7 +90,7 @@
   (cond
     (= key :width)   (- (l :width) ((l :padding) :right) ((l :padding) :left))
     (= key :next_x)  (l :x)
-    (= key :next_y)  (+ (:y box) ((l :padding) :bottom))
+    (= key :next_y)  (+ (box :y) ((l :padding) :bottom) (box :height))
     (= key :start_x) (+ ((l :padding) :left) (l :x))
     (= key :start_y) (+ ((l :padding) :top) (l :y))))
 
@@ -130,7 +130,7 @@
                y start_y]
           (. text-layout draw g x y)
           (if (zero? (- (.length (t :body)) position))
-            (update-layout current-layout { :x x, :y y, :width (.. text-layout getBounds getWidth), :height (- y start_y) })
+            (update-layout current-layout { :x x, :y y, :width (.. text-layout getBounds getWidth), :height (.. text-layout getBounds getHeight) })
             (recur 
               (.. measure (nextLayout width))
               (.. measure getPosition)

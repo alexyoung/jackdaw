@@ -9,8 +9,12 @@
   (flow 10)
   (para "1. do this")
   (para "2. do that")
-  (stack 10 20)
-  (para "3. do this on a new line"))
+  (stack 10)
+  (para "3. do this on a new line")
+  (stack 10)
+  (para "4. ...")
+  (para "5. ...")
+  )
 
 ;(app "Jackdaw API Example" { :width 800, :height 600 }
 ;  (fill 0 0 0 )
