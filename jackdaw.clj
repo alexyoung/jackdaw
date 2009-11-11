@@ -46,11 +46,12 @@
   ([x y]                   (struct box y x y x))
   ([top right bottom left] (struct box top right bottom left)))
 
+; Layouts
 (def default-box (struct box 10 10 10 10))
 (def zero-box (struct box 0 0 0 0))
 
 (defn default-flow []
-  (ref (struct layout ::Flow 0 0 (@config :width) (@config :height) default-box default-box)))
+  (ref (struct layout ::Flow 0 10 (@config :width) (@config :height) default-box default-box)))
 
 (defn add-layouts [old new]
   (struct layout (:type new)
@@ -64,26 +65,6 @@
                  height
                  (:width l) (:height l) (:margin l) (:padding l))) 
 
-; Drawing
-(defmulti draw (fn [object g l] (:type object)))
-
-(defmethod draw ::jackdaw/Rect [r g l]
-  (doto g
-    (.setColor ((r :style) :fill-color))
-    (.fillRect (r :x) (r :y) (r :width) (r :height))
-    (.setColor ((r :style) :stroke-color))
-    (.drawRect (r :x) (r :y) (r :width) (r :height)))
-  l)
-
-(defmethod draw ::jackdaw/Oval [e g l]
-  (doto g
-    (.setColor ((e :style) :fill-color))
-    (.fillOval (e :x) (e :y) (e :width) (e :height))
-    (.setColor ((e :style) :stroke-color))
-    (.drawOval (e :x) (e :y) (e :width) (e :height)))
-  l)
-
-; -move this
 (defmulti apply-layout (fn [l key box] (:type l)))
 
 (defmethod apply-layout ::jackdaw/Stack [l key box]
@@ -106,7 +87,31 @@
   (dosync (ref-set l (assoc @l :x (apply-layout @l :next_x box))))
   (dosync (ref-set l (assoc @l :y (apply-layout @l :next_y box)))))
 
-; -end
+(defn add-layout
+  ([type] (add-cmd (struct layout type 0 0 (@config :width) (@config :height) default-box default-box)))
+  ([type padding-args]
+    (add-cmd
+      (struct layout ::Stack 0 0
+                     (@config :width) (@config :height) default-box (apply padding (seq padding-args))))))
+
+; Drawing
+(defmulti draw (fn [object g l] (:type object)))
+
+(defmethod draw ::jackdaw/Rect [r g l]
+  (doto g
+    (.setColor ((r :style) :fill-color))
+    (.fillRect (r :x) (r :y) (r :width) (r :height))
+    (.setColor ((r :style) :stroke-color))
+    (.drawRect (r :x) (r :y) (r :width) (r :height)))
+  l)
+
+(defmethod draw ::jackdaw/Oval [e g l]
+  (doto g
+    (.setColor ((e :style) :fill-color))
+    (.fillOval (e :x) (e :y) (e :width) (e :height))
+    (.setColor ((e :style) :stroke-color))
+    (.drawOval (e :x) (e :y) (e :width) (e :height)))
+  l)
 
 (defmethod draw ::jackdaw/Para [t g l]
   (let [current-layout (ref l)]
@@ -178,10 +183,10 @@
   (add-cmd (struct text ::Para 10 300 (current-font-style) body)))
 
 (defn stack
-  ([] (add-cmd (struct layout ::Stack 0 0 (@config :width) (@config :height) default-box default-box)))
-  ([& padding-args] (add-cmd (struct layout ::Stack 0 0 (@config :width) (@config :height) default-box (apply padding (seq padding-args))))))
+  ([] (add-layout ::Stack))
+  ([& padding-args] (add-layout ::Stack padding-args)))
 
-(defn flow
-  ([] (add-cmd (struct layout ::Flow 0 0 (@config :width) (@config :height) zero-box zero-box)))
-  ([& padding-args] (add-cmd (struct layout ::Flow 0 0 (@config :width) (@config :height) zero-box (apply padding (seq padding-args))))))
+(defn flow 
+  ([] (add-layout ::Flow))
+  ([& padding-args] (add-layout ::Flow padding-args)))
 
