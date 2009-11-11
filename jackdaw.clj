@@ -41,6 +41,11 @@
 (defstruct box :top :right :bottom :left )
 (defstruct layout :type :x :y :width :height :margin :padding)
 
+(defn padding
+  ([x]                     (struct box x x x x))
+  ([x y]                   (struct box y x y x))
+  ([top right bottom left] (struct box top right bottom left)))
+
 (def default-box (struct box 10 10 10 10))
 (def zero-box (struct box 0 0 0 0))
 
@@ -79,27 +84,28 @@
   l)
 
 ; -move this
-(defmulti apply-layout (fn [l key _] (:type l)))
+(defmulti apply-layout (fn [l key box] (:type l)))
 
-(defmethod apply-layout ::jackdaw/Stack
-  ([l key]
-    (cond
-      (= key :width)   (- (l :width) ((l :padding) :right) ((l :padding) :left))
-      (= key :start_x) (+ ((l :padding) :left) (l :x))
-      (= key :start_y) (+ ((l :padding) :top) (l :y))))
-  ([l key y]
-    (cond
-      (= key :next_y)  (+ y ((l :padding) :bottom)))))
+(defmethod apply-layout ::jackdaw/Stack [l key box]
+  (cond
+    (= key :width)   (- (l :width) ((l :padding) :right) ((l :padding) :left))
+    (= key :next_x)  (l :x)
+    (= key :next_y)  (+ (:y box) ((l :padding) :bottom))
+    (= key :start_x) (+ ((l :padding) :left) (l :x))
+    (= key :start_y) (+ ((l :padding) :top) (l :y))))
 
-(defmethod apply-layout ::jackdaw/Flow
-  ([l key]
-    (cond
-      (= key :width)   (- (l :width) ((l :padding) :right) ((l :padding) :left))
-      (= key :start_x) (+ ((l :padding) :left) (l :x))
-      (= key :start_y) (+ ((l :padding) :top) (l :y))))
-  ([l key y]
-    (cond
-      (= key :next_y)  (+ y ((l :padding) :bottom)))))
+(defmethod apply-layout ::jackdaw/Flow [l key box]
+  (cond
+    (= key :width)   (- (l :width) ((l :padding) :right) ((l :padding) :left))
+    (= key :next_x)  (+ (:x box) ((l :padding) :right) (box :width))
+    (= key :next_y)  (l :y)
+    (= key :start_x) (+ ((l :padding) :left) (l :x))
+    (= key :start_y) (+ ((l :padding) :top) (l :y))))
+
+(defn update-layout [l box]
+  (dosync (ref-set l (assoc @l :x (apply-layout @l :next_x box))))
+  (dosync (ref-set l (assoc @l :y (apply-layout @l :next_y box)))))
+
 ; -end
 
 (defmethod draw ::jackdaw/Para [t g l]
@@ -113,10 +119,9 @@
                        (Font. ((t :style) :font) (. Font PLAIN) ((t :style) :size)))
         (.addAttribute (.. TextAttribute SIZE) ((t :style) :size))
         (.addAttribute (.. TextAttribute FOREGROUND) ((t :style) :color)))
-      (let [width   (apply-layout @current-layout :width)
-            x       (apply-layout @current-layout :start_x)
-            start_y (apply-layout @current-layout :start_y)
-            ; LineBreakMeasurer does the real work
+      (let [width   (apply-layout @current-layout :width {})
+            x       (apply-layout @current-layout :start_x {})
+            start_y (apply-layout @current-layout :start_y {})
             measure (LineBreakMeasurer.
                     (.. body getIterator)
                     (.. g getFontRenderContext))]
@@ -125,7 +130,7 @@
                y start_y]
           (. text-layout draw g x y)
           (if (zero? (- (.length (t :body)) position))
-            (dosync (ref-set current-layout (assoc @current-layout :y (apply-layout @current-layout :next_y y))))
+            (update-layout current-layout { :x x, :y y, :width (.. text-layout getBounds getWidth), :height (- y start_y) })
             (recur 
               (.. measure (nextLayout width))
               (.. measure getPosition)
@@ -174,13 +179,9 @@
 
 (defn stack
   ([] (add-cmd (struct layout ::Stack 0 0 (@config :width) (@config :height) default-box default-box)))
-  ([padding] (add-cmd (struct layout ::Stack 0 0 (@config :width) (@config :height) default-box padding))))
+  ([& padding-args] (add-cmd (struct layout ::Stack 0 0 (@config :width) (@config :height) default-box (apply padding (seq padding-args))))))
 
-(defn flow []
-  (add-cmd
-    (struct layout ::Flow 0 0 (@config :width) (@config :height) zero-box zero-box)))
+(defn flow
+  ([] (add-cmd (struct layout ::Flow 0 0 (@config :width) (@config :height) zero-box zero-box)))
+  ([& padding-args] (add-cmd (struct layout ::Flow 0 0 (@config :width) (@config :height) zero-box (apply padding (seq padding-args))))))
 
-(defn padding
-  ([x]                     (struct box x x x x))
-  ([x y]                   (struct box y x y x))
-  ([top right bottom left] (struct box top right bottom left)))
