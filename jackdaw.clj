@@ -31,7 +31,7 @@
     :stroke-color (@config :stroke-color) })
 
 (defn current-font-style []
-  { :color (@config :fill-color),
+  { :color (@config :stroke-color),
     :size  17
     :font  "Helvetica" })
 
@@ -47,11 +47,18 @@
   ([top right bottom left] (struct box top right bottom left)))
 
 ; Layouts
-(def default-box (struct box 10 10 10 10))
+(defn default-box
+  ([] (struct box 10 10 10 10))
+  ([key options]
+    (cond
+      (contains? options :padding) (padding (options :padding)) 
+      (contains? options :margin) (padding (options :margin)) 
+      (default-box))))
+
 (def zero-box (struct box 0 0 0 0))
 
-(defn default-flow []
-  (ref (struct layout ::Flow 0 10 (@config :width) (@config :height) default-box default-box)))
+(defn default-flow [options]
+  (ref (struct layout ::Flow 0 10 (options :width) (options :height) (default-box :margin options) (default-box :padding options))))
 
 (defn add-layouts [old new]
   (struct layout (:type new)
@@ -88,11 +95,11 @@
   (dosync (ref-set l (assoc @l :y (apply-layout @l :next_y box)))))
 
 (defn add-layout
-  ([type] (add-cmd (struct layout type 0 0 (@config :width) (@config :height) default-box default-box)))
+  ([type] (add-cmd (struct layout type 0 0 (@config :width) (@config :height) (default-box) (default-box))))
   ([type padding-args]
     (add-cmd
       (struct layout ::Stack 0 0
-                     (@config :width) (@config :height) default-box (apply padding (seq padding-args))))))
+                     (@config :width) (@config :height) (default-box) (apply padding (seq padding-args))))))
 
 ; Drawing
 (defmulti draw (fn [object g l] (:type object)))
@@ -142,8 +149,8 @@
               (+ y (. text-layout getAscent) (. text-layout getDescent) (. text-layout getLeading)))))))
     @current-layout))
 
-(defn draw-all []
-  (let [current-layout (default-flow)
+(defn draw-all [options]
+  (let [current-layout (default-flow options)
         r (doto (proxy [JPanel] [] (paint [g]
     (doall (for [cmd (@config :commands)]
       (if (some #{(cmd :type)} [::jackdaw/Stack ::jackdaw/Flow])
@@ -165,7 +172,7 @@
 
 ; Interface
 (defmacro app [name options & cmds]
-  `(do (create-window ~name (~options :width) (~options :height)) ~@cmds (draw-all)))
+  `(do (create-window ~name (~options :width) (~options :height)) ~@cmds (draw-all ~options)))
 
 (defn fill [r g b]
   (set-config { :fill-color (Color. r g b) }))

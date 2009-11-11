@@ -4,8 +4,7 @@
 ; the drawing functions will need optional parameters
 ; for inline styles
 
-(app "Jackdaw API Example" { :width 800, :height 600 }
-  (fill 0 0 0 )
+(app "Jackdaw API Example" { :width 800, :height 600, :padding 10 }
   (para "From:")
   (para "Alex")
   (flow)
