@@ -143,15 +143,19 @@
                y start_y]
           (. text-layout draw g x y)
           (if (zero? (- (.length (t :body)) position))
-            (update-layout current-layout { :x x, :y y, :width (.. text-layout getBounds getWidth), :height (.. text-layout getBounds getHeight) })
+            (update-layout current-layout {
+              :x x,
+              :y y,
+              :width (.. text-layout getBounds getWidth),
+              :height (.. text-layout getBounds getHeight) })
             (recur 
               (.. measure (nextLayout width))
               (.. measure getPosition)
               (+ y (. text-layout getAscent) (. text-layout getDescent) (. text-layout getLeading)))))))
     @current-layout))
 
-(defn draw-all [options]
-  (let [current-layout (default-flow options)
+(defn draw-all [l]
+  (let [current-layout l 
         r (doto (proxy [JPanel] [] (paint [g]
     (doall (for [cmd (@config :commands)]
       (if (some #{(cmd :type)} [::jackdaw/Stack ::jackdaw/Flow])
@@ -173,7 +177,7 @@
 
 ; Interface
 (defmacro app [name options & cmds]
-  `(do (create-window ~name (~options :width) (~options :height)) ~@cmds (draw-all ~options)))
+  `(do (create-window ~name (~options :width) (~options :height)) ~@cmds (draw-all (default-flow ~options))))
 
 (defn fill [r g b]
   (set-config { :fill-color (Color. r g b) }))
@@ -190,11 +194,16 @@
 (defn para [body]
   (add-cmd (struct text ::Para 10 300 (current-font-style) body)))
 
-(defn stack
-  ([] (add-layout ::Stack))
-  ([& padding-args] (add-layout ::Stack padding-args)))
+(defmacro flow [& cmds]
+  (let [options (vec (filter integer? cmds))
+        cmds    (filter #(not (integer? %)) cmds)]
+    (if (empty? options)
+      `(do (add-layout ::Flow) ~@cmds)
+      `(do (add-layout ::Flow ~options) ~@cmds))))
 
-(defn flow 
-  ([] (add-layout ::Flow))
-  ([& padding-args] (add-layout ::Flow padding-args)))
-
+(defmacro stack [& cmds]
+  (let [options (vec (filter integer? cmds))
+        cmds    (filter #(not (integer? %)) cmds)]
+    (if (empty? options)
+      `(do (add-layout ::Stack) ~@cmds)
+      `(do (add-layout ::Stack ~options) ~@cmds))))
